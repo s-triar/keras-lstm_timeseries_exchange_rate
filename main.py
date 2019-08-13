@@ -77,10 +77,13 @@ def predictVal(model, data, scaler):
     return prediction
 
 
-def drawPlot(real_val, prediction_val, kolom):
+def drawPlot(real_val, prediction_val, kolom,title):
     plt.plot(real_val, color='red', label='Real val')
-    if prediction_val != None:
+    try:
         plt.plot(prediction_val, color='green', label='predicted val')
+    except:
+        pass
+    plt.title(title)
     plt.xlabel('Time')
     plt.ylabel(kolom)
     plt.legend()
@@ -95,7 +98,7 @@ def calculateEval(real_val, prediction_val):
           str(mean_absolute_error(real_val, prediction_val)))
 
 
-if  __name__ == "__main__":
+if __name__ == "__main__":
     path = "./data/kurs_bersih.csv"
     rasio = 0.7
     kolom = "Kurs Jual"
@@ -110,12 +113,15 @@ if  __name__ == "__main__":
     training = False
     # prepare data
     data_training, data_testing = inputData(path, rasio, kolom)
+    data_used = np.concatenate((data_training, data_testing), axis=0)
+    drawPlot(data_used, None, kolom, "Data Kurs Jual")
     scaler, data_training_scaled = scaleData(data_training)
     scaler, data_testing_scaled = scaleData(data_testing, scaler)
-    all_data = np.concatenate((data_training_scaled, data_testing_scaled),axis=0)
-    drawPlot(all_data, None, kolom)
-    data_test = all_data[len(all_data) - len(data_testing_scaled) - batch_time:]
-    
+    all_data = np.concatenate(
+        (data_training_scaled, data_testing_scaled), axis=0)
+    data_test = all_data[len(all_data) -
+                         len(data_testing_scaled) - batch_time:]
+
     # prepare input data training
     train_x = []
     train_y = []
@@ -126,8 +132,10 @@ if  __name__ == "__main__":
 
     # definisi model
     if training:
-        model = defineModel(dropout_ratio, n_hidden_unit, train_x.shape, n_lstm_layer)
-        model = runModel(model, train_x, train_y, n_epoch, batch_size, "coba1LSTM")
+        model = defineModel(dropout_ratio, n_hidden_unit,
+                            train_x.shape, n_lstm_layer)
+        model = runModel(model, train_x, train_y,
+                         n_epoch, batch_size, "coba1LSTM")
     else:
         model = importModel("./models/coba1LSTM1.h5")
 
@@ -137,8 +145,15 @@ if  __name__ == "__main__":
         test_x.append(data_test[i-batch_time:i])
     test_x = np.array(test_x)
 
-    # predict
+    # predict with data test
     prediction = predictVal(model, train_x, scaler)
-    # evaluate
-    drawPlot(data_training[batch_time:], prediction, kolom)
+    # evaluate with data train
+    drawPlot(data_training[batch_time:], prediction, kolom, "Predict with data train")
     calculateEval(data_training[batch_time:], prediction)
+
+    # predict with data test
+    prediction = predictVal(model, test_x, scaler)
+    # evaluate with data test
+    drawPlot(data_testing, prediction, kolom, "Predict with data train")
+    calculateEval(data_testing, prediction)
+    
